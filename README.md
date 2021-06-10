@@ -20,5 +20,7 @@
  - сравнить рассматриваемые алгоритмы.
 
 Базы данных: https://www.kaggle.com/kmader/mias-mammography
+
+
 http://peipa.essex.ac.uk/info/mias.html
 
