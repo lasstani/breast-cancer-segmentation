@@ -1,0 +1,105 @@
+class FRiS-Cluster:
+    def __init__(self, k=15, tol=0.001, max_iter=300):
+        self.k = k
+        self.tol = tol
+        self.max_iter = max_iter
+
+    def fit(self,data):
+
+        unique, counts = np.unique(data, return_counts=True)
+        dict1 = dict(zip(unique, counts))
+        un = list(dict1.keys())
+        vesa = list(dict1.values())
+        N = 1024**2
+                     
+        self.stolp = {}
+        
+        d = []
+
+        for i in range(len(un)):
+            s=0
+            for j in range(len(un)):
+                s += vesa[j]*abs(un[i]-un[j]) 
+            d.append(s/N)
+        r = min(d) #r*
+        
+        r1_1 = np.zeros((len(un), len(un)), dtype = 'float')            
+        F = []
+
+        for i in range(len(un)):
+            s=0
+            for j in range(len(un)):
+                r1_1[i][j] = abs(un[i]-un[j])
+                s += (vesa[j])*(r - r1_1[i][j])/(r + r1_1[i][j]) 
+            F.append(s/N)
+                     
+        self.stolp[0] = un[F.index(max(F))]
+        
+        # потом надо найти остальные столпы 
+        #====================================================================================
+        #ПОИСК СТОЛПОВ
+
+        for k in range(1, self.k):        
+            r11 = np.zeros((len(un), len(un)), dtype = 'float')
+            F1 = []
+
+            for i in range(len(un)):
+                s=0
+        
+                for j in range(len(un)):
+                    g = []
+                    for stolp in self.stolp:
+                
+                        g.append(np.abs(un[j]-self.stolp[stolp]))
+                    
+                    r11[i][j] = min(abs(un[i]-un[j]), min(g))
+            
+                    s += (vesa[j])*(r - r11[i][j])/(r + r11[i][j])  
+                F1.append(s/N)
+                     
+            self.stolp[k] = un[F1.index(max(F1))]
+            
+        for i in range(300):
+            self.classifications = {}
+    
+            for i in range(self.k):
+                self.classifications[i] = []
+
+            for featureset in un:
+                distances = [np.abs(featureset-self.stolp[stolp]) for stolp in self.stolp]
+                classification = distances.index(min(distances))
+                self.classifications[classification].append(featureset)
+                
+            prev_stolp = dict(self.stolp) 
+            
+            for classification in self.classifications:
+                F2=[]
+                for a in list(self.classifications.values())[classification]:
+            
+                    r1=abs(a-self.stolp[classification])
+            
+                    distances =  []
+            
+                    for stolp in self.stolp:
+                        distances.append(np.abs(a-self.stolp[stolp]))
+                        if (stolp == classification):
+                            distances[stolp] = 1000000
+           
+                    r2 = min(distances)
+            
+                    s = (r2 - r1)/(r2 + r1)
+                    F2.append(s)
+
+                self.stolp[classification] = self.classifications[classification][F2.index(max(F2))]
+            
+            optimized = True
+
+            for c in self.stolp:
+                original_stolp = prev_stolp[c]
+                current_stolp= self.stolp[c]
+                if np.sum((current_stolp-original_stolp)/original_stolp*100.0) > self.tol:
+                    #print(np.sum((current_stolp-original_stolp)/original_stolp*100.0))
+                    optimized = False
+
+            if optimized:
+                break    
